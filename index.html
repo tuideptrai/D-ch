@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎬 Tool thuyết minh video → MP4 (Gemini dịch EN/ZH → VI)</title>
+<style>
+  :root{
+    --bg:#0e1015; --card:#161a22; --card2:#1d222c; --line:#2a3140;
+    --txt:#e8ecf4; --muted:#8b95ab; --accent:#4f8cff; --accent-h:#3d78ea;
+    --green:#22c55e; --red:#ef4444; --purple:#a855f7; --amber:#f59e0b;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    font-size:14px; line-height:1.5;
+  }
+  header{
+    padding:18px 22px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:linear-gradient(180deg,#141822,#0e1015);
+  }
+  header h1{font-size:17px; margin:0; font-weight:700; letter-spacing:.2px;}
+  header p{margin:0; color:var(--muted); font-size:12.5px;}
+
+  main{
+    display:grid; grid-template-columns: minmax(0,1fr) 440px;
+    gap:16px; padding:16px; align-items:start;
+    max-width:1600px; margin:0 auto;
+  }
+  @media (max-width:1080px){ main{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); padding:14px; margin-bottom:16px;
+  }
+  .card h2{
+    font-size:12px; text-transform:uppercase; letter-spacing:.8px;
+    color:var(--muted); margin:0 0 12px; font-weight:700;
+  }
+  .card h2:not(:first-child){margin-top:20px;}
+
+  .video-wrap{
+    position:relative; background:#000; border-radius:var(--radius);
+    overflow:hidden; aspect-ratio:16/9; display:flex;
+    align-items:center; justify-content:center;
+  }
+  #video{width:100%; height:100%; display:block; object-fit:contain; background:#000;}
+  #drop{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:10px; cursor:pointer;
+    background:rgba(10,12,16,.92); text-align:center; padding:20px;
+    border:2px dashed var(--line); border-radius:var(--radius);
+    transition:.18s; color:var(--muted);
+  }
+  #drop:hover, #drop.over{border-color:var(--accent); color:var(--txt); background:rgba(79,140,255,.08);}
+  #drop .big{font-size:38px;}
+  #drop b{color:var(--txt); font-size:15px;}
+
+  button{
+    font:inherit; font-weight:600; cursor:pointer; border-radius:10px;
+    border:1px solid var(--line); background:var(--card2); color:var(--txt);
+    padding:9px 14px; transition:.15s; white-space:nowrap;
+  }
+  button:hover:not(:disabled){background:#28303e; border-color:#3a445a;}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  button.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  button.primary:hover:not(:disabled){background:var(--accent-h);}
+  button.purple{background:var(--purple); border-color:var(--purple); color:#fff;}
+  button.purple:hover:not(:disabled){background:#9333ea;}
+  button.danger{background:transparent; border-color:var(--red); color:#ff8b8b;}
+  button.mini{padding:2px 8px; font-size:12px; border-radius:7px; line-height:1.6;}
+  .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+
+  label.field{display:block; margin-bottom:12px;}
+  label.field > span{display:block; font-size:12px; color:var(--muted); margin-bottom:5px;}
+  input[type=text], input[type=password], input[type=number], select, textarea{
+    width:100%; background:#0e1219; color:var(--txt);
+    border:1px solid var(--line); border-radius:9px; padding:8px 10px;
+    font:inherit; outline:none; transition:.15s;
+  }
+  input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,140,255,.15);}
+  textarea{resize:vertical; min-height:52px; line-height:1.45;}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  input[type=file]{display:none;}
+  .hint{font-size:11.5px; color:var(--muted); margin:6px 0 0;}
+
+  #segments{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+  .seg{
+    background:var(--card2); border:1px solid var(--line);
+    border-radius:11px; padding:10px; transition:.15s;
+  }
+  .seg:focus-within{border-color:var(--accent);}
+  .seg-head{display:flex; align-items:center; gap:7px; margin-bottom:7px; flex-wrap:wrap;}
+  .seg-head input[type=number]{width:78px; padding:4px 7px; font-size:13px;}
+  .seg-head .unit{font-size:11.5px; color:var(--muted);}
+  .seg-head .spacer{flex:1;}
+  .seg textarea{background:#0b0f15; font-size:13px;}
+  .seg textarea.src{color:#c7d2fe;}
+  .seg .divider{
+    display:flex; align-items:center; gap:8px; margin:8px 0 6px;
+    font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+  }
+  .seg .divider::before, .seg .divider::after{
+    content:''; flex:1; height:1px; background:var(--line);
+  }
+  .seg.translating{opacity:.6;}
+  .badge{
+    font-size:10px; padding:1px 6px; border-radius:5px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.4px;
+  }
+  .badge.gem{background:rgba(168,85,247,.2); color:#d8b4fe; border:1px solid rgba(168,85,247,.4);}
+  .badge.gtx{background:rgba(79,140,255,.2); color:#93c5fd; border:1px solid rgba(79,140,255,.4);}
+
+  .pills{display:flex; gap:8px; margin-bottom:12px;}
+  .pill{
+    flex:1; text-align:center; padding:9px 8px; border-radius:10px;
+    border:1px solid var(--line); background:var(--card2);
+    cursor:pointer; font-size:12.5px; font-weight:600; transition:.15s;
+  }
+  .pill input{display:none;}
+  .pill.on{border-color:var(--accent); background:rgba(79,140,255,.14); color:#bcd4ff;}
+
+  .trans-bar{
+    background:linear-gradient(135deg,rgba(168,85,247,.12),rgba(79,140,255,.08));
+    border:1px solid rgba(168,85,247,.3);
+    border-radius:11px; padding:10px; margin-bottom:12px;
+  }
+  .trans-bar .title{
+    font-size:11.5px; font-weight:700; color:#d8b4fe;
+    text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px;
+  }
+  .trans-bar .controls{display:flex; gap:8px; flex-wrap:wrap;}
+  .trans-bar select{flex:1; min-width:110px; padding:6px 9px; font-size:12.5px;}
+
+  .gem-box{
+    background:rgba(168,85,247,.06); border:1px solid rgba(168,85,247,.25);
+    border-radius:10px; padding:10px; margin-top:10px;
+  }
+  .gem-box .lbl{font-size:11.5px; color:#d8b4fe; font-weight:700; margin-bottom:6px;
+    text-transform:uppercase; letter-spacing:.4px; display:flex; align-items:center; gap:6px;}
+  .gem-box input{font-size:12.5px; font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .gem-box .stat{margin-top:6px; font-size:11.5px; color:var(--muted);}
+  .gem-box .stat.ok{color:var(--green);}
+  .gem-box .stat.err{color:#ff8b8b;}
+
+  .bar{height:8px; background:#0b0f15; border-radius:99px; overflow:hidden; margin:12px 0 8px;}
+  #progressBar{height:100%; width:0; background:linear-gradient(90deg,var(--accent),var(--green)); transition:width .15s linear;}
+  #status{font-size:12.5px; color:var(--muted); margin:0; min-height:19px;}
+  #status.ok{color:var(--green);}
+  #status.err{color:#ff8b8b;}
+
+  .time-badge{
+    font-variant-numeric:tabular-nums; font-size:12px; color:var(--muted);
+    background:#0b0f15; border:1px solid var(--line);
+    padding:3px 9px; border-radius:7px;
+  }
+  #toast{
+    position:fixed; left:50%; bottom:26px; transform:translate(-50%,20px);
+    background:#232a36; border:1px solid var(--line); color:var(--txt);
+    padding:11px 18px; border-radius:11px; font-size:13px; font-weight:500;
+    opacity:0; pointer-events:none; transition:.25s; z-index:99;
+    box-shadow:0 10px 30px rgba(0,0,0,.5); max-width:90vw;
+  }
+  #toast.show{opacity:1; transform:translate(-50%,0);}
+  .warn{
+    background:rgba(234,179,8,.1); border:1px solid rgba(234,179,8,.35);
+    color:#fde68a; padding:9px 11px; border-radius:9px; font-size:12px;
+    margin-bottom:12px; line-height:1.5;
+  }
+  .warn.big{
+    margin:12px 16px; padding:12px 16px; font-size:13px;
+    background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.4); color:#fecaca;
+  }
+  .spin{
+    display:inline-block; width:12px; height:12px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.3); border-top-color:#fff;
+    animation:spin .7s linear infinite; vertical-align:-2px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  details summary{cursor:pointer; color:var(--muted); font-size:12px; margin-top:6px;}
+  details[open] summary{color:#d8b4fe;}
+  a{color:var(--accent);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎬 Tool thuyết minh video <span style="color:var(--purple)">+ Dịch Gemini</span></h1>
+  <p>Thêm lời bình · Dịch EN/ZH → VI bằng AI · Xuất MP4 có thuyết minh</p>
+</header>
+
+<div id="ttsMissingWarn" style="display:none" class="warn big">
+  🚫 <b>Trình duyệt không hỗ trợ giọng đọc TTS (Web Speech API).</b><br>
+  → Hãy dùng <b>Chrome / Edge / Cốc Cốc mới nhất</b> và mở file trực tiếp (không qua iframe / preview của app).<br>
+  → Trong lúc đó, bạn vẫn có thể chuyển sang chế độ <b>🎧 File audio</b> ở mục “Nguồn âm thanh thuyết minh” để xuất video có tiếng bình thường.
+</div>
+
+<main>
+  <section>
+    <div class="card" style="padding:0;border:none;background:none;">
+      <div class="video-wrap">
+        <video id="video" playsinline controls></video>
+        <div id="drop">
+          <div class="big">📼</div>
+          <b>Kéo &amp; thả video vào đây</b>
+          <span>hoặc bấm để chọn file (MP4, WEBM, MOV, MKV…)</span>
+        </div>
+      </div>
+      <canvas id="canvas" style="position:absolute;left:-99999px;top:0;"></canvas>
+      <input type="file" id="videoFile" accept="video/*">
+    </div>
+
+    <div class="card">
+      <h2>Điều khiển</h2>
+      <div class="row">
+        <button id="btnPlay">▶️ Phát thử thuyết minh</button>
+        <button id="btnPause">⏸ Tạm dừng</button>
+        <button id="btnRewind">⏮ Về đầu</button>
+        <span style="flex:1"></span>
+        <span class="time-badge" id="timeBadge">0:00 / 0:00</span>
+      </div>
+      <p class="hint">Bấm “Phát thử” để nghe giọng đọc khớp với video trước khi xuất.</p>
+    </div>
+  </section>
+
+  <aside>
+    <div class="card">
+      <h2>1 · Kịch bản &amp; Dịch thuật</h2>
+
+      <div class="trans-bar">
+        <div class="title">🌐 Dịch tự động sang tiếng Việt</div>
+        <div class="controls">
+          <select id="srcLang">
+            <option value="auto">🔄 Tự nhận diện</option>
+            <option value="en">🇬🇧 Tiếng Anh</option>
+            <option value="zh-CN">🇨🇳 Tiếng Trung</option>
+            <option value="ja">🇯🇵 Tiếng Nhật</option>
+            <option value="ko">🇰🇷 Tiếng Hàn</option>
+          </select>
+          <button id="btnTransAll" class="purple">🌐 Dịch tất cả</button>
+        </div>
+
+        <div class="gem-box">
+          <div class="lbl">✨ Gemini API Key <span id="engBadge" class="badge gem">AI</span></div>
+          <input type="password" id="geminiKey" placeholder="AIzaSy... hoặc AQ.Ab8RN6... (key từ aistudio.google.com)">
+          <div class="stat" id="gemStat">Chưa có key → dùng Google Translate miễn phí.</div>
+          <details>
+            <summary>💡 Cách lấy Gemini API Key (miễn phí)</summary>
+            <div style="font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.6">
+              1. Mở <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a><br>
+              2. Đăng nhập Google → bấm <b>Create API key</b><br>
+              3. Copy key (dạng <code>AIzaSy...</code> hoặc <code>AQ.Ab8RN6...</code>) → dán vào ô trên.<br>
+              <br>
+              <b>Lưu ý:</b> Key được lưu trong <code>localStorage</code> của trình duyệt bạn.
+              Không chia sẻ file HTML có key cho người khác.
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div id="segments"></div>
+
+      <div class="row">
+        <button id="addSeg">+ Thêm đoạn</button>
+        <button id="distribute">⚖️ Chia đều theo thời lượng</button>
+      </div>
+      <p class="hint">
+        Mỗi đoạn gồm <b>văn bản gốc</b> (EN/ZH...) và <b>bản dịch tiếng Việt</b>.
+        Chỉ bản dịch tiếng Việt mới được đọc khi xuất video.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>2 · Giọng đọc</h2>
+
+      <label class="field">
+        <span>Giọng</span>
+        <select id="voiceSel"><option>Đang tải giọng…</option></select>
+      </label>
+
+      <label class="field">
+        <span>Tốc độ đọc: <b id="rateVal">1.0</b>×</span>
+        <input type="range" id="rate" min="0.5" max="2" step="0.05" value="1">
+      </label>
+
+      <label class="field">
+        <span>Cao độ: <b id="pitchVal">1.0</b></span>
+        <input type="range" id="pitch" min="0" max="2" step="0.05" value="1">
+      </label>
+
+      <label class="field">
+        <span>Âm lượng: <b id="volVal">100</b>%</span>
+        <input type="range" id="vol" min="0" max="1" step="0.05" value="1">
+      </label>
+
+      <h2>Nguồn âm thanh thuyết minh</h2>
+      <div class="pills">
+        <label class="pill on" id="pillTts">
+          <input type="radio" name="amode" value="tts" checked> 🔊 Giọng TTS
+        </label>
+        <label class="pill" id="pillFile">
+          <input type="radio" name="amode" value="file"> 🎧 File audio
+        </label>
+      </div>
+
+      <div id="fileAudioBox" style="display:none">
+        <button id="pickAudio" style="width:100%">📁 Chọn file thuyết minh (mp3/wav/m4a)</button>
+        <p class="hint" id="audioInfo">Chưa chọn file.</p>
+      </div>
+      <input type="file" id="narrationFile" accept="audio/*">
+
+      <label class="row" style="margin-top:12px;gap:8px;cursor:pointer">
+        <input type="checkbox" id="keepOriginal" checked style="width:auto;accent-color:var(--accent)">
+        <span style="font-size:12.5px">Giữ âm thanh gốc của video</span>
+      </label>
+    </div>
+
+    <div class="card">
+      <h2>3 · Xuất video</h2>
+
+      <div class="warn" id="ttsWarn">
+        ⚠️ Trình duyệt <b>không cho phép ghi trực tiếp âm thanh TTS</b>. Khi xuất, hãy chọn
+        <b>“Tab này”</b> và bật <b>“Chia sẻ âm thanh tab”</b> để thu được giọng đọc.
+      </div>
+
+      <div class="row">
+        <button class="primary" id="btnExport" style="flex:1">⬇️ Bắt đầu &amp; Tải về</button>
+        <button class="danger" id="btnStop" hidden>⏹ Dừng</button>
+      </div>
+
+      <div class="bar"><div id="progressBar"></div></div>
+      <p id="status">Sẵn sàng.</p>
+    </div>
+  </aside>
+</main>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   SHIM: chống crash khi trình duyệt thiếu Web Speech API
+   ========================================================= */
+const HAS_TTS = (typeof window !== 'undefined')
+  && ('speechSynthesis' in window)
+  && (typeof window.SpeechSynthesisUtterance === 'function');
+
+if (!HAS_TTS) {
+  console.warn('[Tool] Trình duyệt không hỗ trợ speechSynthesis — TTS sẽ bị vô hiệu hoá.');
+
+  // Shim tối thiểu
+  if (!('speechSynthesis' in window)) {
+    window.speechSynthesis = {
+      speak(){}, cancel(){}, pause(){}, resume(){},
+      getVoices(){ return []; },
+      onvoiceschanged: null,
+      pending: false, speaking: false, paused: false
+    };
+  }
+  if (typeof window.SpeechSynthesisUtterance !== 'function') {
+    window.SpeechSynthesisUtterance = function(text){ this.text = text || ''; };
+  }
+}
+
+/* =========================================================
+   TIỆN ÍCH
+   ========================================================= */
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtTime = t => {
+  if (!isFinite(t) || t < 0) return '0:00';
+  const m = Math.floor(t / 60), s = Math.floor(t % 60);
+  return m + ':' + String(s).padStart(2, '0');
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+let toastTimer;
+function toast(msg, ms = 2600) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+function setStatus(msg, cls = '') {
+  const el = $('#status');
+  el.textContent = msg;
+  el.className = cls;
+}
+
+/* Hiển thị cảnh báo TTS nếu thiếu */
+window.addEventListener('DOMContentLoaded', () => {
+  if (!HAS_TTS) {
+    $('#ttsMissingWarn').style.display = 'block';
+  }
+});
+
+/* =========================================================
+   QUẢN LÝ GEMINI API KEY
+   Hỗ trợ: AIzaSy... (cũ) và AQ.Ab8RN6... (mới 2024+)
+   ========================================================= */
+const KEY_STORAGE = 'gemini_api_key';
+const GEMINI_MODEL = 'gemini-2.0-flash';
+
+function getKey() { return (localStorage.getItem(KEY_STORAGE) || '').trim(); }
+function setKey(k) { localStorage.setItem(KEY_STORAGE, (k || '').trim()); updateKeyStatus(); }
+function isOldFormatKey(k) { return /^AIza[0-9A-Za-z_\-]{20,}$/.test(k); }
+function isNewFormatKey(k) { return /^AQ\.[0-9A-Za-z_\-]{20,}$/.test(k); }
+
+function updateKeyStatus() {
+  const k = getKey();
+  const st = $('#gemStat');
+  const badge = $('#engBadge');
+  if (!k) {
+    st.textContent = 'Chưa có key → dùng Google Translate miễn phí.';
+    st.className = 'stat';
+    badge.className = 'badge gtx'; badge.textContent = 'GTX';
+    return;
+  }
+  if (!isOldFormatKey(k) && !isNewFormatKey(k)) {
+    st.textContent = '⚠️ Key không đúng định dạng (phải bắt đầu bằng "AIzaSy..." hoặc "AQ."). Sẽ fallback GTX.';
+    st.className = 'stat err';
+    badge.className = 'badge gtx'; badge.textContent = 'GTX';
+    return;
+  }
+  const fmt = isNewFormatKey(k) ? 'AQ (mới)' : 'AIza (cũ)';
+  st.textContent = `✅ Đang dùng Gemini để dịch (định dạng ${fmt}, chất lượng cao).`;
+  st.className = 'stat ok';
+  badge.className = 'badge gem'; badge.textContent = 'GEMINI';
+}
+
+(function initKey() {
+  const k = getKey();
+  if (k) $('#geminiKey').value = k;
+  updateKeyStatus();
+})();
+
+$('#geminiKey').addEventListener('change', e => setKey(e.target.value));
+$('#geminiKey').addEventListener('input', e => {
+  clearTimeout(window.__keyTimer);
+  window.__keyTimer = setTimeout(() => setKey(e.target.value), 600);
+});
+
+/* =========================================================
+   DỊCH VỤ DỊCH: Gemini → Google Translate (fallback)
+   ========================================================= */
+const translateCache = new Map();
+const LANG_NAME = {
+  'auto': 'ngôn ngữ gốc', 'en': 'tiếng Anh', 'zh-CN': 'tiếng Trung',
+  'ja': 'tiếng Nhật', 'ko': 'tiếng Hàn'
+};
+
+async function translateWithGemini(text, source, target = 'vi') {
+  const key = getKey();
+  if (!key) throw new Error('NO_KEY');
+
+  const srcDesc = source === 'auto' ? 'tự động nhận diện ngôn ngữ' : (LANG_NAME[source] || source);
+
+  const prompt =
+`Bạn là dịch giả chuyên nghiệp. Hãy dịch đoạn văn sau từ ${srcDesc} sang tiếng Việt tự nhiên, mượt mà, phù hợp để đọc thuyết minh video.
+
+Yêu cầu:
+- Chỉ trả về bản dịch tiếng Việt, KHÔNG giải thích, KHÔNG thêm chú thích, KHÔNG lặp lại bản gốc.
+- Giữ nguyên ý nghĩa, sắc thái; câu văn dễ nghe khi đọc thành tiếng.
+- Không dùng ngoặc kép hay định dạng markdown.
+
+Văn bản gốc:
+"""
+${text}
+"""
+
+Bản dịch tiếng Việt:`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.3, topP: 0.9, maxOutputTokens: 2048 },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+      ]
+    })
+  });
+
+  if (!res.ok) {
+    const errTxt = await res.text().catch(() => '');
+    let msg = `Gemini HTTP ${res.status}`;
+    try { const j = JSON.parse(errTxt); if (j?.error?.message) msg += ' – ' + j.error.message; } catch (e) {}
+    throw new Error(msg);
+  }
+
+  const data = await res.json();
+  const cand = data?.candidates?.[0];
+  let out = cand?.content?.parts?.map(p => p.text || '').join('') || '';
+  out = out.trim();
+
+  if (!out) {
+    const finish = cand?.finishReason || 'EMPTY';
+    throw new Error('Gemini không trả về nội dung (' + finish + ')');
+  }
+  out = out.replace(/^["“”'`]+|["“”'`]+$/g, '').trim();
+  out = out.replace(/^Bản dịch tiếng Việt\s*[:：]\s*/i, '').trim();
+  return out;
+}
+
+async function translateWithGoogle(text, source, target = 'vi') {
+  const url = 'https://translate.googleapis.com/translate_a/single'
+    + '?client=gtx&dt=t&sl=' + encodeURIComponent(source)
+    + '&tl=' + encodeURIComponent(target)
+    + '&q=' + encodeURIComponent(text);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Google Translate HTTP ' + res.status);
+  const data = await res.json();
+  let out = '';
+  if (Array.isArray(data) && Array.isArray(data[0])) {
+    data[0].forEach(seg => { if (seg && seg[0]) out += seg[0]; });
+  }
+  return out.trim();
+}
+
+let geminiFailCount = 0;
+
+async function translateText(text, source = 'auto', target = 'vi') {
+  text = String(text || '').trim();
+  if (!text) return '';
+
+  const ckey = source + '|' + target + '|' + text;
+  if (translateCache.has(ckey)) return translateCache.get(ckey);
+
+  const CHUNK = 3000;
+  if (text.length > CHUNK) {
+    const parts = [];
+    for (let i = 0; i < text.length; i += CHUNK) parts.push(text.slice(i, i + CHUNK));
+    const results = [];
+    for (const p of parts) { results.push(await translateText(p, source, target)); await sleep(150); }
+    const joined = results.join(' ');
+    translateCache.set(ckey, joined);
+    return joined;
+  }
+
+  if (getKey() && geminiFailCount < 3) {
+    try {
+      const out = await translateWithGemini(text, source, target);
+      translateCache.set(ckey, out);
+      return out;
+    } catch (err) {
+      console.warn('Gemini lỗi, chuyển sang GTX:', err);
+      geminiFailCount++;
+      if (geminiFailCount === 1) toast('⚠️ Gemini lỗi — tự động dùng Google Translate', 3500);
+    }
+  }
+
+  const out = await translateWithGoogle(text, source, target);
+  translateCache.set(ckey, out);
+  return out;
+}
+
+/* =========================================================
+   TRẠNG THÁI
+   ========================================================= */
+const state = {
+  videoURL: null, fileName: 'video',
+  audioMode: 'tts',
+  narrationBuffer: null, narrationName: '',
+  voice: null, rate: 1, pitch: 1, volume: 1,
+  keepOriginal: true, isExporting: false, recorder: null, translating: false
+};
+
+const video = $('#video');
+const canvas = $('#canvas');
+
+let audioCtx = null;
+let videoSourceNode = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function getVideoSource() {
+  const ctx = getAudioCtx();
+  if (!videoSourceNode) {
+    videoSourceNode = ctx.createMediaElementSource(video);
+    videoSourceNode.connect(ctx.destination);
+  }
+  return videoSourceNode;
+}
+
+/* =========================================================
+   NẠP VIDEO
+   ========================================================= */
+const dropZone = $('#drop');
+const videoInput = $('#videoFile');
+
+dropZone.addEventListener('click', () => videoInput.click());
+videoInput.addEventListener('change', e => { if (e.target.files[0]) loadVideo(e.target.files[0]); });
+
+['dragenter', 'dragover'].forEach(ev =>
+  dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('over'); })
+);
+['dragleave', 'drop'].forEach(ev =>
+  dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('over'); })
+);
+dropZone.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('video')) loadVideo(f);
+  else toast('Vui lòng chọn file video hợp lệ');
+});
+
+function loadVideo(file) {
+  if (state.videoURL) URL.revokeObjectURL(state.videoURL);
+  state.videoURL = URL.createObjectURL(file);
+  state.fileName = file.name.replace(/\.[^.]+$/, '') || 'video';
+  video.src = state.videoURL;
+  video.load();
+  dropZone.style.display = 'none';
+
+  video.addEventListener('loadedmetadata', () => {
+    $('#timeBadge').textContent = `0:00 / ${fmtTime(video.duration)}`;
+    setStatus(`Đã nạp video: ${video.videoWidth}×${video.videoHeight} · ${fmtTime(video.duration)}`);
+  }, { once: true });
+  toast('Đã nạp video ✔');
+}
+
+/* =========================================================
+   KỊCH BẢN
+   ========================================================= */
+let segments = [];
+let segId = 0;
+
+function addSegment(start = 0, source = '', vi = '') {
+  segments.push({ id: ++segId, start: Number(start) || 0, source, vi });
+  renderSegments();
+}
+
+function renderSegments() {
+  const box = $('#segments');
+  box.innerHTML = '';
+  if (!segments.length) {
+    box.innerHTML = '<p class="hint" style="margin:0">Chưa có đoạn nào. Bấm “+ Thêm đoạn” để bắt đầu.</p>';
+    return;
+  }
+
+  segments.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'seg';
+    el.dataset.id = s.id;
+    el.innerHTML = `
+      <div class="seg-head">
+        <input type="number" class="seg-time" min="0" step="0.1" value="${s.start}">
+        <span class="unit">giây</span>
+        <button class="mini now" title="Lấy mốc thời gian video hiện tại">⏱</button>
+        <span class="spacer"></span>
+        <button class="mini trans" title="Dịch đoạn này sang tiếng Việt">🌐 Dịch</button>
+        <button class="mini del" title="Xoá đoạn">✕</button>
+      </div>
+      <textarea class="seg-src" rows="2" placeholder="Văn bản gốc (English / 中文 / ...)">${esc(s.source)}</textarea>
+      <div class="divider">🇻🇳 Bản dịch tiếng Việt</div>
+      <textarea class="seg-vi" rows="2" placeholder="Bản dịch tiếng Việt (sẽ được đọc)">${esc(s.vi)}</textarea>
+    `;
+
+    el.querySelector('.seg-time').addEventListener('input', e => { s.start = parseFloat(e.target.value) || 0; });
+    el.querySelector('.seg-src').addEventListener('input', e => { s.source = e.target.value; });
+    el.querySelector('.seg-vi').addEventListener('input',  e => { s.vi = e.target.value; });
+
+    el.querySelector('.now').addEventListener('click', () => {
+      const t = +(video.currentTime || 0).toFixed(2);
+      s.start = t;
+      el.querySelector('.seg-time').value = t;
+    });
+
+    el.querySelector('.trans').addEventListener('click', async () => {
+      const src = s.source.trim();
+      if (!src) return toast('Đoạn này chưa có văn bản gốc');
+      const btn = el.querySelector('.trans');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spin"></span>';
+      el.classList.add('translating');
+      try {
+        const out = await translateText(src, $('#srcLang').value, 'vi');
+        s.vi = out;
+        el.querySelector('.seg-vi').value = out;
+        toast('Đã dịch ✔');
+      } catch (err) {
+        console.error(err);
+        toast('Dịch lỗi: ' + err.message, 3500);
+      } finally {
+        btn.disabled = false; btn.textContent = '🌐 Dịch';
+        el.classList.remove('translating');
+      }
+    });
+
+    el.querySelector('.del').addEventListener('click', () => {
+      segments = segments.filter(x => x.id !== s.id);
+      renderSegments();
+    });
+
+    box.appendChild(el);
+  });
+}
+
+$('#addSeg').addEventListener('click', () => addSegment(video.currentTime || 0));
+
+$('#distribute').addEventListener('click', () => {
+  const list = segments.filter(s => (s.vi || s.source).trim());
+  if (!list.length) return toast('Chưa có nội dung thuyết minh');
+  const dur = isFinite(video.duration) ? video.duration : 0;
+  if (!dur) return toast('Chưa nạp video');
+  const total = list.reduce((a, s) => a + (s.vi || s.source).trim().length, 0);
+  let t = 0;
+  list.forEach(s => {
+    s.start = +t.toFixed(2);
+    t += dur * ((s.vi || s.source).trim().length / total);
+  });
+  renderSegments();
+  toast('Đã chia đều theo thời lượng video ✔');
+});
+
+/* =========================================================
+   DỊCH TẤT CẢ
+   ========================================================= */
+$('#btnTransAll').addEventListener('click', async () => {
+  if (state.translating) return;
+  const targets = segments.filter(s => s.source.trim() && !s.vi.trim());
+  if (!targets.length) return toast('Không có đoạn nào cần dịch');
+
+  state.translating = true;
+  const btn = $('#btnTransAll');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Đang dịch…';
+
+  const src = $('#srcLang').value;
+  let done = 0, errs = 0;
+
+  for (const s of targets) {
+    const el = document.querySelector(`.seg[data-id="${s.id}"]`);
+    if (el) {
+      el.classList.add('translating');
+      const b = el.querySelector('.trans');
+      if (b) { b.disabled = true; b.innerHTML = '<span class="spin"></span>'; }
+    }
+    try {
+      s.vi = await translateText(s.source.trim(), src, 'vi');
+      if (el) el.querySelector('.seg-vi').value = s.vi;
+      done++;
+    } catch (err) {
+      console.error(err);
+      errs++;
+    } finally {
+      if (el) {
+        el.classList.remove('translating');
+        const b = el.querySelector('.trans');
+        if (b) { b.disabled = false; b.textContent = '🌐 Dịch'; }
+      }
+      await sleep(250);
+    }
+  }
+
+  state.translating = false;
+  btn.disabled = false;
+  btn.innerHTML = '🌐 Dịch tất cả';
+
+  if (errs) toast(`Đã dịch ${done} đoạn, ${errs} đoạn lỗi ❌`, 3500);
+  else toast(`Đã dịch xong ${done} đoạn ✔`);
+});
+
+/* =========================================================
+   GIỌNG ĐỌC TTS
+   ========================================================= */
+const voiceSel = $('#voiceSel');
+function loadVoices() {
+  if (!HAS_TTS) {
+    voiceSel.innerHTML = '<option>(Trình duyệt không hỗ trợ TTS)</option>';
+    return;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return;
+  voiceSel.innerHTML = '';
+  const vi = voices.filter(v => /vi/i.test(v.lang));
+  const others = voices.filter(v => !/vi/i.test(v.lang));
+  const addGroup = (label, arr) => {
+    if (!arr.length) return;
+    const g = document.createElement('optgroup');
+    g.label = label;
+    arr.forEach(v => {
+      const o = document.createElement('option');
+      o.value = voices.indexOf(v);
+      o.textContent = `${v.name} (${v.lang})`;
+      g.appendChild(o);
+    });
+    voiceSel.appendChild(g);
+  };
+  addGroup('🇻🇳 Tiếng Việt', vi);
+  addGroup('🌐 Ngôn ngữ khác', others);
+
+  const def = vi[0] || voices[0];
+  if (def) { voiceSel.value = voices.indexOf(def); state.voice = def; }
+}
+
+if (HAS_TTS) {
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  setTimeout(loadVoices, 300);
+} else {
+  setTimeout(loadVoices, 100);
+}
+
+voiceSel.addEventListener('change', () => {
+  if (!HAS_TTS) return;
+  const v = window.speechSynthesis.getVoices()[+voiceSel.value];
+  if (v) state.voice = v;
+});
+
+$('#rate').addEventListener('input', e => { state.rate = +e.target.value; $('#rateVal').textContent = (+e.target.value).toFixed(2); });
+$('#pitch').addEventListener('input', e => { state.pitch = +e.target.value; $('#pitchVal').textContent = (+e.target.value).toFixed(2); });
+$('#vol').addEventListener('input', e => { state.volume = +e.target.value; $('#volVal').textContent = Math.round(e.target.value * 100); });
+
+function speak(text) {
+  if (!HAS_TTS) return;
+  const u = new window.SpeechSynthesisUtterance(text);
+  if (state.voice) { u.voice = state.voice; u.lang = state.voice.lang; }
+  u.rate = state.rate;
+  u.pitch = state.pitch;
+  u.volume = state.volume;
+  window.speechSynthesis.speak(u);
+}
+
+let timers = [];
+function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+function getSegmentsSorted() {
+  return segments.filter(s => s.vi.trim()).slice().sort((a, b) => a.start - b.start);
+}
+function scheduleNarration(from) {
+  clearTimers();
+  if (state.audioMode !== 'tts' || !HAS_TTS) return;
+  getSegmentsSorted().forEach(seg => {
+    const delay = (seg.start - from) * 1000;
+    if (delay < -150) return;
+    timers.push(setTimeout(() => speak(seg.vi.trim()), Math.max(0, delay)));
+  });
+}
+
+video.addEventListener('play', () => scheduleNarration(video.currentTime));
+video.addEventListener('pause', () => { clearTimers(); if (HAS_TTS) window.speechSynthesis.cancel(); });
+video.addEventListener('seeked', () => { if (!video.paused && !state.isExporting) scheduleNarration(video.currentTime); });
+video.addEventListener('timeupdate', () => {
+  if (!state.isExporting) $('#timeBadge').textContent = `${fmtTime(video.currentTime)} / ${fmtTime(video.duration)}`;
+});
+
+$('#btnPlay').addEventListener('click', () => {
+  if (!state.videoURL) return toast('Chưa chọn video');
+  if (HAS_TTS) window.speechSynthesis.cancel();
+  video.play().catch(() => toast('Không thể phát video'));
+});
+$('#btnPause').addEventListener('click', () => video.pause());
+$('#btnRewind').addEventListener('click', () => {
+  video.pause();
+  if (HAS_TTS) window.speechSynthesis.cancel();
+  clearTimers(); video.currentTime = 0;
+});
+
+$$('.pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    $$('.pill').forEach(p => p.classList.remove('on'));
+    pill.classList.add('on');
+    pill.querySelector('input').checked = true;
+    state.audioMode = pill.querySelector('input').value;
+    $('#fileAudioBox').style.display = state.audioMode === 'file' ? 'block' : 'none';
+    $('#ttsWarn').style.display = state.audioMode === 'tts' ? 'block' : 'none';
+  });
+});
+
+$('#pickAudio').addEventListener('click', () => $('#narrationFile').click());
+$('#narrationFile').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    setStatus('Đang giải mã file audio…');
+    const ctx = getAudioCtx();
+    const buf = await f.arrayBuffer();
+    state.narrationBuffer = await ctx.decodeAudioData(buf);
+    state.narrationName = f.name;
+    $('#audioInfo').textContent = `✔ ${f.name} — ${state.narrationBuffer.duration.toFixed(1)}s`;
+    setStatus('Đã nạp file thuyết minh ✔', 'ok');
+  } catch (err) {
+    console.error(err);
+    state.narrationBuffer = null;
+    $('#audioInfo').textContent = 'Chưa chọn file.';
+    setStatus('Không đọc được file audio này.', 'err');
+  }
+});
+
+$('#keepOriginal').addEventListener('change', e => { state.keepOriginal = e.target.checked; });
+
+/* =========================================================
+   XUẤT VIDEO
+   ========================================================= */
+function pickMime() {
+  const list = [
+    'video/mp4;codecs="avc1.640028,mp4a.40.2"',
+    'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm'
+  ];
+  if (!window.MediaRecorder) return '';
+  for (const t of list) { try { if (MediaRecorder.isTypeSupported(t)) return t; } catch (e) {} }
+  return '';
+}
+
+async function prepareAudio() {
+  if (state.audioMode === 'file' && state.narrationBuffer) {
+    const ctx = getAudioCtx();
+    const dest = ctx.createMediaStreamDestination();
+    const nSrc = ctx.createBufferSource();
+    nSrc.buffer = state.narrationBuffer;
+    nSrc.connect(dest);
+    const gain = ctx.createGain();
+    gain.gain.value = state.keepOriginal ? 1 : 0;
+    getVideoSource().connect(gain);
+    gain.connect(dest);
+    return {
+      tracks: dest.stream.getAudioTracks(),
+      start() { try { nSrc.start(); } catch (e) {} },
+      stop() {
+        try { nSrc.stop(); } catch (e) {}
+        try { gain.disconnect(); } catch (e) {}
+        try { nSrc.disconnect(); } catch (e) {}
+      }
+    };
+  }
+
+  try {
+    setStatus('Hãy chọn “Tab này” và BẬT “Chia sẻ âm thanh tab”…');
+    const disp = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true, preferCurrentTab: true });
+    disp.getVideoTracks().forEach(t => t.stop());
+    const at = disp.getAudioTracks();
+    if (!at.length) { disp.getTracks().forEach(t => t.stop()); throw new Error('no-audio-track'); }
+    return { tracks: at, start() {}, stop() { disp.getTracks().forEach(t => t.stop()); } };
+  } catch (err) {
+    if (err && err.name === 'NotAllowedError') throw new Error('Bạn đã huỷ chia sẻ âm thanh. Hãy thử lại và chọn “Tab này”.');
+    setStatus('Không thu được âm thanh tab → chuyển sang thu qua micro…');
+    toast('Đang thu qua micro. Hãy bật loa và giữ yên tĩnh!');
+    const mic = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+    return { tracks: mic.getAudioTracks(), start() {}, stop() { mic.getTracks().forEach(t => t.stop()); } };
+  }
+}
+
+function seekTo(t) {
+  return new Promise(res => {
+    let done = false;
+    const finish = () => { if (done) return; done = true; video.removeEventListener('seeked', finish); res(); };
+    video.addEventListener('seeked', finish);
+    video.currentTime = t;
+    setTimeout(finish, 1200);
+  });
+}
+
+let endedHandler = null;
+
+$('#btnExport').addEventListener('click', startExport);
+$('#btnStop').addEventListener('click', stopExport);
+
+async function startExport() {
+  if (!state.videoURL) return toast('Vui lòng chọn video trước');
+  if (!isFinite(video.duration) || video.duration <= 0) return toast('Video chưa sẵn sàng');
+  if (!window.MediaRecorder) return toast('Trình duyệt không hỗ trợ MediaRecorder');
+
+  if (state.audioMode === 'tts' && !HAS_TTS) {
+    return toast('Trình duyệt không hỗ trợ TTS — hãy chuyển sang chế độ "File audio"', 4000);
+  }
+
+  const untranslated = segments.filter(s => s.source.trim() && !s.vi.trim()).length;
+  if (untranslated && state.audioMode === 'tts') {
+    if (!confirm(`Còn ${untranslated} đoạn chưa có bản dịch tiếng Việt (sẽ không được đọc).\nVẫn tiếp tục xuất?`)) return;
+  }
+
+  const btnExport = $('#btnExport');
+  const btnStop = $('#btnStop');
+  btnExport.disabled = true;
+  btnStop.hidden = false;
+  state.isExporting = true;
+  $('#progressBar').style.width = '0%';
+  setStatus('Đang chuẩn bị…');
+
+  let audioSetup = null;
+  let stream = null;
+
+  try {
+    video.pause();
+    if (HAS_TTS) window.speechSynthesis.cancel();
+    clearTimers();
+    await seekTo(0);
+
+    const vw = video.videoWidth || 1280;
+    const vh = video.videoHeight || 720;
+    const scale = Math.min(1, 1920 / vw, 1080 / vh);
+    canvas.width  = Math.max(2, Math.round(vw * scale / 2) * 2);
+    canvas.height = Math.max(2, Math.round(vh * scale / 2) * 2);
+
+    const ctx2d = canvas.getContext('2d', { alpha: false });
+    ctx2d.fillStyle = '#000';
+    ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+
+    audioSetup = await prepareAudio();
+
+    stream = new MediaStream();
+    canvas.captureStream(30).getVideoTracks().forEach(t => stream.addTrack(t));
+    audioSetup.tracks.forEach(t => stream.addTrack(t));
+
+    const mime = pickMime();
+    const recOpts = { videoBitsPerSecond: 8_000_000, audioBitsPerSecond: 128_000 };
+    if (mime) recOpts.mimeType = mime;
+
+    const rec = new MediaRecorder(stream, recOpts);
+    state.recorder = rec;
+    const chunks = [];
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+
+    rec.onstop = () => {
+      const type = (mime || 'video/webm').split(';')[0];
+      const ext = type.includes('mp4') ? 'mp4' : 'webm';
+      const blob = new Blob(chunks, { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${state.fileName}_thuyetminh.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+
+      try { audioSetup.stop(); } catch (e) {}
+      stream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} });
+      if (endedHandler) { video.removeEventListener('ended', endedHandler); endedHandler = null; }
+      if (HAS_TTS) window.speechSynthesis.cancel();
+      clearTimers();
+      video.pause();
+
+      state.isExporting = false;
+      state.recorder = null;
+      btnExport.disabled = false;
+      btnStop.hidden = true;
+
+      $('#progressBar').style.width = '100%';
+      setStatus(`✅ Hoàn tất! Đã tải ${ext.toUpperCase()} · ${(blob.size / 1048576).toFixed(1)} MB`, 'ok');
+      toast(`Đã tải video .${ext} về máy 🎉`, 4000);
+    };
+
+    rec.start(1000);
+    setStatus('🔴 Đang ghi… video sẽ tự chạy hết.');
+
+    try { await video.play(); }
+    catch (e) { video.muted = true; await video.play(); }
+
+    audioSetup.start();
+    scheduleNarration(0);
+
+    (function drawLoop() {
+      if (!state.isExporting) return;
+      try { ctx2d.drawImage(video, 0, 0, canvas.width, canvas.height); } catch (e) {}
+      const p = video.duration ? video.currentTime / video.duration : 0;
+      $('#progressBar').style.width = Math.min(100, p * 100).toFixed(1) + '%';
+      $('#timeBadge').textContent = `${fmtTime(video.currentTime)} / ${fmtTime(video.duration)}`;
+      requestAnimationFrame(drawLoop);
+    })();
+
+    endedHandler = () => {
+      setTimeout(() => {
+        if (state.recorder && state.recorder.state !== 'inactive') state.recorder.stop();
+      }, 500);
+    };
+    video.addEventListener('ended', endedHandler);
+
+  } catch (err) {
+    console.error(err);
+    state.isExporting = false;
+    btnExport.disabled = false;
+    btnStop.hidden = true;
+    if (audioSetup) { try { audioSetup.stop(); } catch (e) {} }
+    if (stream) stream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} });
+    if (endedHandler) { video.removeEventListener('ended', endedHandler); endedHandler = null; }
+    if (HAS_TTS) window.speechSynthesis.cancel();
+    clearTimers();
+    setStatus('❌ Lỗi: ' + (err.message || err), 'err');
+    toast('Xuất video thất bại: ' + (err.message || err), 4000);
+  }
+}
+
+function stopExport() {
+  if (!state.isExporting) return;
+  state.isExporting = false;
+  if (endedHandler) { video.removeEventListener('ended', endedHandler); endedHandler = null; }
+  if (state.recorder && state.recorder.state !== 'inactive') state.recorder.stop();
+  if (HAS_TTS) window.speechSynthesis.cancel();
+  clearTimers(); video.pause();
+  toast('Đã dừng ghi — file sẽ được tải về.');
+}
+
+/* =========================================================
+   KHỞI TẠO
+   ========================================================= */
+addSegment(0,
+  'Welcome to this tutorial. Today we will learn how to add a voiceover to your video.',
+  'Chào mừng bạn đến với hướng dẫn này. Hôm nay chúng ta sẽ học cách thêm thuyết minh vào video của bạn.'
+);
+addSegment(5,
+  '这是一个非常简单的工具，可以帮助你快速制作带解说的视频。',
+  'Đây là một công cụ rất đơn giản, giúp bạn nhanh chóng tạo video có thuyết minh.'
+);
+addSegment(12, '', '');
+
+$('#ttsWarn').style.display = 'block';
+renderSegments();
+
+window.addEventListener('beforeunload', () => {
+  if (HAS_TTS) window.speechSynthesis.cancel();
+  if (state.videoURL) URL.revokeObjectURL(state.videoURL);
+});
+</script>
+</body>
+  </html>
